@@ -37,10 +37,10 @@ const AuthForm = () => {
       }
 
       toast.success("Account created successfully!");
+      setIsLoginMode(true); // Switch to login mode after successful signup
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {
-      setIsLoginMode(true); // Switch to login mode after successful signup
       setIsLoading(false);
     }
   };
@@ -56,7 +56,6 @@ const AuthForm = () => {
         },
         body: JSON.stringify(data),
       });
-
       const result = await response.json();
 
       if (!response.ok) {

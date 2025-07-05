@@ -17,6 +17,10 @@ export const signupSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
     ),
+  gender: z.enum(["male", "female"], {
+    required_error: "Gender is required",
+    invalid_type_error: "Gender must be either 'male' or 'female'",
+  }),
 });
 
 export const loginSchema = z.object({

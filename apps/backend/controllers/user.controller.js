@@ -6,10 +6,10 @@ const User = db.User;
 
 const signup = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, gender } = req.body;
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !gender) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -20,6 +20,7 @@ const signup = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      gender
     });
 
     if (user) {
@@ -64,6 +65,9 @@ const login = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Check if gender is missing
+    const needsGender = !user.gender;
+
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -82,9 +86,43 @@ const login = async (req, res) => {
     console.log("user", JSON.stringify(user, null, 2));
     console.log(token);
 
-    return res.status(200).json({ message: "Login successful", user, token });
+    return res
+      .status(200)
+      .json({ message: "Login successful", user, token, needsGender });
   } catch (error) {
     console.error("Error in login controller:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const setGender = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { gender } = req.body;
+
+    if (!["male", "female"].includes(gender)) {
+      return res.status(400).json({ message: "Invalid gender value" });
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.gender = gender;
+    await user.save();
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    return res.status(200).json({
+      message: "Gender updated successfully",
+      user,
+      token,
+    });
+  } catch (error) {
+    console.error("Error in setGender controller:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -92,4 +130,5 @@ const login = async (req, res) => {
 module.exports = {
   signup,
   login,
+  setGender,
 };

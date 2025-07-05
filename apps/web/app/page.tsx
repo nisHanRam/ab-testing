@@ -2,14 +2,55 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogoutConfirmDialog } from "@components/LogoutConfirmDialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import GenderSelectModal from "@components/GenderSelectModal";
 
 const Dashboard = () => {
   const router = useRouter();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showGenderModal, setShowGenderModal] = useState(false);
+
+  console.log("showGenderModal: ", showGenderModal);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "");
+    if (!user.gender) {
+      setShowGenderModal(true);
+    }
+  }, []);
+
+  const handleGenderConfirm = async (gender: "male" | "female") => {
+    console.log("Selected gender:", gender);
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "");
+      const response = await fetch(
+        `http://localhost:8080/api/users/${user.id}/gender`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ gender }),
+        }
+      );
+      const result = await response.json();
+console.log(result)
+      if (!response.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      toast.success("Login successful.");
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("user", JSON.stringify(result.user));
+    } catch (error) {}
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    localStorage.setItem("user", JSON.stringify({ ...user, gender }));
+    setShowGenderModal(false);
+  };
 
   const confirmLogout = () => {
     localStorage.clear();
@@ -58,6 +99,7 @@ const Dashboard = () => {
         onConfirm={confirmLogout}
         onCancel={cancelLogout}
       />
+      {showGenderModal && <GenderSelectModal onConfirm={handleGenderConfirm} />}
     </div>
   );
 };

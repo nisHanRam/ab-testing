@@ -2,9 +2,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, LucidePersonStanding } from "lucide-react";
 import { signupSchema, SignupFormData } from "@/lib/auth-schemas";
 import FormField from "@components/common/FormField";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import RadioField from "@components/common/RadioField";
 
 interface SignupFormContentProps {
   onSubmit: (data: SignupFormData) => Promise<void>;
@@ -41,6 +44,18 @@ const SignupFormContent = ({ onSubmit, isLoading }: SignupFormContentProps) => {
         icon={<Mail className="w-4 h-4" />}
         error={form.formState.errors.email?.message}
         register={form.register("email")}
+      />
+
+      <RadioField
+        control={form.control}
+        name="gender"
+        label="Gender"
+        icon={<LucidePersonStanding className="w-4 h-4" />}
+        options={[
+          { value: "male", label: "Male" },
+          { value: "female", label: "Female" },
+        ]}
+        error={form.formState.errors.gender?.message}
       />
 
       <FormField
