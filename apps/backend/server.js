@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const db = require("./models");
 const userRoutes = require("./routes/user.routes");
+const videoRoutes = require("./routes/video.routes");
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -30,6 +31,7 @@ db.sequelize
 
 // Routes setup
 app.use("/api/users", userRoutes);
+app.use("/api/videos", videoRoutes);
 
 // Listening on the specified port
 app.listen(PORT, () => {

@@ -30,7 +30,7 @@ const AuthForm = () => {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
+    const result = await response.json();
 
       if (!response.ok) {
         throw new Error(result.message || "Something went wrong");
