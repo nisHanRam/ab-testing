@@ -3,13 +3,16 @@ const { remoteConfig } = require("../firebase/firebase");
 
 const Video = db.Video;
 
-const addVideo = async (req, res, next) => {
+const addVideo = async (req, res) => {
   try {
     const video = await Video.create(req.body);
 
     // Construct the key and value
     const key = `${req.body.variant}_video_url_${req.body.lessonId}`;
-    const value = req.body.url;
+    const value = JSON.stringify({
+      videoUrl: req.body.url,
+      videoThumbnail: req.body.thumbnail,
+    });
 
     // Fetch current remote config template
     const template = await remoteConfig.getTemplate();

@@ -7,23 +7,41 @@ import { LogoutConfirmDialog } from "@components/LogoutConfirmDialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import GenderSelectModal from "@components/GenderSelectModal";
+import { fetchAndActivate, getValue, remoteConfig } from "@/lib/firebaseClient";
 
 const Dashboard = () => {
   const router = useRouter();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
+  const lessonId = 1;
 
-  console.log("showGenderModal: ", showGenderModal);
+  const fetchVideoUrl = async (gender: "male" | "female" | null) => {
+    if (!gender) {
+      setShowGenderModal(true);
+      return;
+    }
+
+    try {
+      await fetchAndActivate(remoteConfig);
+      const key = `${gender}_video_url_${lessonId}`;
+      const valueStr = getValue(remoteConfig, key).asString();
+      const config = JSON.parse(valueStr);
+      setVideoUrl(config.videoUrl);
+      setVideoThumbnail(config.videoThumbnail);
+    } catch (err) {
+      console.error("Failed to load video config", err);
+    }
+  };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "");
-    if (!user.gender) {
-      setShowGenderModal(true);
-    }
-  }, []);
+    const rawUser = localStorage.getItem("user");
+    const user = rawUser ? JSON.parse(rawUser) : null;
+    fetchVideoUrl(user?.gender || null);
+  }, [lessonId]);
 
   const handleGenderConfirm = async (gender: "male" | "female") => {
-    console.log("Selected gender:", gender);
     try {
       const user = JSON.parse(localStorage.getItem("user") || "");
       const response = await fetch(
@@ -37,18 +55,19 @@ const Dashboard = () => {
         }
       );
       const result = await response.json();
-console.log(result)
+
       if (!response.ok) {
         throw new Error(result.message || "Something went wrong");
       }
 
-      toast.success("Login successful.");
+      toast.success("Gender updated successfully.");
       localStorage.setItem("token", result.token);
       localStorage.setItem("user", JSON.stringify(result.user));
-    } catch (error) {}
+      fetchVideoUrl(result.user.gender);
+    } catch (error) {
+      console.log(error);
+    }
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    localStorage.setItem("user", JSON.stringify({ ...user, gender }));
     setShowGenderModal(false);
   };
 
@@ -80,17 +99,16 @@ console.log(result)
         </CardHeader>
         <CardContent>
           <div className="aspect-video bg-gray-100 rounded-lg">
-            <video
-              controls
-              className="w-full h-full object-cover"
-              poster="https://peach.blender.org/wp-content/uploads/bbb-splash.png"
-            >
-              <source
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                type="video/mp4"
-              />
-              Your browser does not support the video tag.
-            </video>
+            {videoUrl && videoThumbnail && (
+              <video
+                controls
+                className="w-full h-full object-cover"
+                poster={videoThumbnail}
+              >
+                <source src={videoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            )}
           </div>
         </CardContent>
       </Card>
