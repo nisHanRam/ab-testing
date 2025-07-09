@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import GenderSelectModal from "@components/GenderSelectModal";
 import { fetchAndActivate, getValue, remoteConfig } from "@/lib/firebaseClient";
+import amplitude from "@/lib/amplitudeClient";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -38,6 +39,11 @@ const Dashboard = () => {
   useEffect(() => {
     const rawUser = localStorage.getItem("user");
     const user = rawUser ? JSON.parse(rawUser) : null;
+    console.log(user);
+    amplitude.track("dashboard_loaded", {
+      gender: user?.gender || "unknown",
+    });
+
     fetchVideoUrl(user?.gender || null);
   }, [lessonId]);
 
@@ -104,6 +110,15 @@ const Dashboard = () => {
                 controls
                 className="w-full h-full object-cover"
                 poster={videoThumbnail}
+                onPlay={() => {
+                  const user = JSON.parse(localStorage.getItem("user") || "{}");
+                  amplitude.track("video_started", {
+                    lessonId,
+                    gender: user.gender,
+                    videoUrl,
+                    videoVariant: user.gender,
+                  });
+                }}
               >
                 <source src={videoUrl} type="video/mp4" />
                 Your browser does not support the video tag.
