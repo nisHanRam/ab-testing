@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,41 +30,74 @@ const LessonClient = ({ lesson }: { lesson: lessonType }) => {
   const [open, setOpen] = useState(false); // for dialog
 
   // form state
-  const [videoForm, setVideoForm] = useState<Omit<Video, "id">>({
-    url: "",
-    thumbnail: "",
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
+  const [videoForm, setVideoForm] = useState<
+    Omit<Video, "id" | "url" | "thumbnail">
+  >({
     title: "",
     variant: "male",
   });
 
+  const getSavedVideos = async () => {
+    const response = await fetch("http://localhost:8080/api/videos/get", {
+      method: "GET",
+    });
+    const result = await response.json();
+    setVideos(result.videos);
+  };
+
+  useEffect(() => {
+    getSavedVideos();
+  }, []);
+
   const handleAddVideo = async () => {
+    if (!videoFile) {
+      alert("Please select a video file to upload.");
+      return;
+    }
+
+    if (!thumbnailImage) {
+      alert("Please select a thumbnail to upload.");
+      return;
+    }
+
     try {
+      const formData = new FormData();
+      formData.append("video", videoFile);
+      formData.append("thumbnail", thumbnailImage);
+      formData.append("title", videoForm.title);
+      formData.append("variant", videoForm.variant);
+      formData.append("lessonId", lesson.id);
+
       const response = await fetch("http://localhost:8080/api/videos/add", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...videoForm, lessonId: lesson.id }),
+        body: formData,
       });
+
       const result = await response.json();
-      console.log(result);
+
+      setVideos((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}`,
+          url: result?.url,
+          thumbnail: result?.thumbnail,
+          ...videoForm,
+        },
+      ]);
+
+      // Resetting
+      setVideoFile(null);
+      setThumbnailImage(null);
+      setVideoForm({
+        title: "",
+        variant: "male",
+      });
+      setOpen(false);
     } catch (error) {
       console.log(error);
     }
-
-    setVideos((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}`,
-        ...videoForm,
-      },
-    ]);
-
-    setVideoForm({
-      url: "",
-      thumbnail: "",
-      title: "",
-      variant: "male",
-    });
-    setOpen(false);
   };
 
   const handleDeleteVideo = (videoId: string) => {
@@ -122,31 +155,25 @@ const LessonClient = ({ lesson }: { lesson: lessonType }) => {
 
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="url">Video URL</Label>
+                    <Label htmlFor="video">Video</Label>
                     <Input
-                      id="url"
-                      placeholder="https://example.com/video.mp4"
-                      value={videoForm.url}
+                      id="video"
+                      type="file"
+                      accept="video/*"
                       onChange={(e) =>
-                        setVideoForm((prev) => ({
-                          ...prev,
-                          url: e.target.value,
-                        }))
+                        setVideoFile(e.target.files?.[0] || null)
                       }
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="thumbnail">Thumbnail URL</Label>
+                    <Label htmlFor="thumbnail">Thumbnail</Label>
                     <Input
                       id="thumbnail"
-                      placeholder="https://example.com/thumbnail.jpg"
-                      value={videoForm.thumbnail}
+                      type="file"
+                      accept="image/*"
                       onChange={(e) =>
-                        setVideoForm((prev) => ({
-                          ...prev,
-                          thumbnail: e.target.value,
-                        }))
+                        setThumbnailImage(e.target.files?.[0] || null)
                       }
                     />
                   </div>

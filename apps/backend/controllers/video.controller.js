@@ -1,17 +1,40 @@
 const db = require("../models");
 const { remoteConfig } = require("../firebase/firebase");
+const { uploadToS3 } = require("../utils/helpers");
 
 const Video = db.Video;
 
 const addVideo = async (req, res) => {
+  console.log(req);
   try {
-    const video = await Video.create(req.body);
+    const { title, variant, lessonId } = req.body;
+    const videoFile = req.files.video?.[0];
+    const thumbnailFile = req.files.thumbnail?.[0];
+
+    if (!title || !variant || !lessonId || !videoFile || !thumbnailFile) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Upload to S3
+    const [videoS3UploadResult, thumbnailS3UploadResult] = await Promise.all([
+      uploadToS3(videoFile, "videos"),
+      uploadToS3(thumbnailFile, "thumbnails"),
+    ]);
+
+    // Save to DB
+    const video = await Video.create({
+      url: videoS3UploadResult.Location,
+      thumbnail: thumbnailS3UploadResult.Location,
+      title,
+      variant,
+      lessonId,
+    });
 
     // Construct the key and value
-    const key = `${req.body.variant}_video_url_${req.body.lessonId}`;
+    const key = `${variant}_video_url_${lessonId}`;
     const value = JSON.stringify({
-      videoUrl: req.body.url,
-      videoThumbnail: req.body.thumbnail,
+      videoUrl: videoS3UploadResult.Location,
+      videoThumbnail: thumbnailS3UploadResult.Location,
     });
 
     // Fetch current remote config template
@@ -32,4 +55,16 @@ const addVideo = async (req, res) => {
   }
 };
 
-module.exports = { addVideo };
+const getVideos = async (req, res) => {
+  console.log("I am here------------------------")
+  try {
+    const videos = await Video.findAll();
+    return res
+      .status(200)
+      .json({ message: "Videos fetched successfully", videos });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+module.exports = { addVideo, getVideos };

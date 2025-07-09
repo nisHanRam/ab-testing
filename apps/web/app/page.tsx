@@ -31,6 +31,12 @@ const Dashboard = () => {
       const config = JSON.parse(valueStr);
       setVideoUrl(config.videoUrl);
       setVideoThumbnail(config.videoThumbnail);
+      amplitude.track("dashboard_loaded", {
+        lessonId,
+        gender: gender || "unknown",
+        videoUrl,
+        videoVariant: gender,
+      });
     } catch (err) {
       console.error("Failed to load video config", err);
     }
@@ -39,10 +45,6 @@ const Dashboard = () => {
   useEffect(() => {
     const rawUser = localStorage.getItem("user");
     const user = rawUser ? JSON.parse(rawUser) : null;
-    console.log(user);
-    amplitude.track("dashboard_loaded", {
-      gender: user?.gender || "unknown",
-    });
 
     fetchVideoUrl(user?.gender || null);
   }, [lessonId]);
